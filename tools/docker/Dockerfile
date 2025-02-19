@@ -5,27 +5,27 @@ ARG BASE_IMAGE_TYPE=slim
 # --------------------------------------
 # slim image
 # --------------------------------------
-FROM ghcr.io/renovatebot/base-image:9.41.0@sha256:305f17ea2024bf4de24cd4740283181370faba79584b72c0d24b586b063d33e0 AS slim-base
+FROM ghcr.io/renovatebot/base-image:9.41.2@sha256:f526e95f2aa9e823f16f5f0594f8ed2e26d99ae9474f207d1f208de857dbed38 AS slim-base
 
 # --------------------------------------
 # full image
 # --------------------------------------
-FROM ghcr.io/renovatebot/base-image:9.41.0-full@sha256:3e9f4ab01f4b2fbc74bc36e85b72720051543ed9fa55cb751cecfd1001631b8a AS full-base
+FROM ghcr.io/renovatebot/base-image:9.41.2-full@sha256:b38deeed490b9005777c56d70a5bee192af8df4b3108d8f6742197a3c702f629 AS full-base
 
 ENV RENOVATE_BINARY_SOURCE=global
 
 # --------------------------------------
 # build image
 # --------------------------------------
-FROM --platform=$BUILDPLATFORM ghcr.io/renovatebot/base-image:9.41.0@sha256:305f17ea2024bf4de24cd4740283181370faba79584b72c0d24b586b063d33e0 AS build
+FROM --platform=$BUILDPLATFORM ghcr.io/renovatebot/base-image:9.41.2@sha256:f526e95f2aa9e823f16f5f0594f8ed2e26d99ae9474f207d1f208de857dbed38 AS build
 
 # We want a specific node version here
 # renovate: datasource=github-releases packageName=containerbase/node-prebuild versioning=node
-RUN install-tool node 22.13.1
+RUN install-tool node 22.14.0
 
 # corepack is too buggy 😞
 # renovate: datasource=npm
-RUN install-tool pnpm 9.15.5
+RUN install-tool pnpm 10.3.0
 
 WORKDIR /usr/local/renovate
 
@@ -59,7 +59,7 @@ ENV CI=1 npm_config_modules_cache_max_age=0 \
 # replace `amd64` with `x64` for `node`
 ENV ARCH=${TARGETARCH/amd64/x64}
 
-COPY --link pnpm-lock.yaml ./
+COPY --link package.json pnpm-lock.yaml ./
 
 # set `npm_config_arch` for `prebuild-install`
 # set `npm_config_platform_arch` for `install-artifact-from-github`
@@ -101,8 +101,9 @@ COPY --link --from=build --chown=root:root /usr/local/renovate/ /usr/local/renov
 RUN ln -sf /usr/local/renovate/node /bin/node
 
 # ensure default base and cache directories exist.
-RUN mkdir -p /tmp/renovate/cache && \
-  chmod -R 777 /tmp/renovate
+# /runner/cache is an alternative cache directory used in both Docker and microVMs.
+RUN mkdir -p /tmp/renovate/cache/renovate/repository /runner/cache/renovate/repository && \
+  chmod -R 777 /tmp/renovate /runner
 
 # test
 RUN set -ex; \
